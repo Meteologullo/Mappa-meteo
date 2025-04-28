@@ -59,7 +59,11 @@ const stazioni = [
   { nome: "Casali del Manco - Morelli Soprana", lat: 39.28, lon: 16.29, quota: "800 m", provincia: "Cosenza", regione: "Calabria", area: "Valle del Crati", stationId: "ICASAL40", apiKey: "", webcam: "" }
 ];
 
-var map = L.map('map').setView([39.3, 16.3], 9);
+var bounds = L.latLngBounds([]);
+var map = L.map('map');
+stazioni.forEach(stazione => bounds.extend([stazione.lat, stazione.lon]));
+map.fitBounds(bounds);
+
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 18,
   attribution: '&copy; OpenStreetMap contributors'
@@ -86,8 +90,6 @@ function getColor(temp) {
   return '#8B0000';
 }
 
-let datiTabella = [];
-
 function apriGrafico(stationId) {
   document.getElementById('grafico-frame').src = `https://www.wunderground.com/dashboard/pws/${stationId}/graph/2024-04-28/2024-04-28/daily`;
   document.getElementById('popup-grafico').style.display = 'flex';
@@ -98,66 +100,74 @@ function chiudiGrafico() {
   document.getElementById('grafico-frame').src = "";
 }
 
+let datiTabella = [];
+
 stazioni.forEach(stazione => {
   if (stazione.apiKey) {
     fetch(`https://api.weather.com/v2/pws/observations/current?stationId=${stazione.stationId}&format=json&units=m&apiKey=${stazione.apiKey}`)
       .then(response => response.json())
       .then(data => {
-        const obs = data.observations[0];
-        const temperatura = obs.metric.temp.toFixed(1);
-        const tempMax = obs.metric.tempHigh24Hour?.toFixed(1) || "-";
-        const tempMin = obs.metric.tempLow24Hour?.toFixed(1) || "-";
-        const umidita = obs.humidity || "-";
-        const vento = obs.windSpeed || "-";
-        const raffica = obs.windGust || "-";
-        const pioggia = obs.metric.precipTotal || "0";
-        const orario = new Date(obs.obsTimeUtc).toLocaleString('it-IT');
-
-        const colore = getColor(temperatura);
-
-        var tempIcon = L.divIcon({
-          className: 'temperature-label',
-          html: `<span style="color: ${parseFloat(temperatura) > 5 ? 'white' : 'black'}">${temperatura}°</span>`,
-          iconSize: [40, 40],
-          iconAnchor: [20, 20]
-        });
-
-        var marker = L.marker([stazione.lat, stazione.lon], {icon: tempIcon}).addTo(map);
-        marker.getElement().style.backgroundColor = colore;
-
-        var popupContent = `
-          <div class="popup-title">${stazione.nome}</div>
-          <div class="popup-sub">${stazione.provincia} - ${stazione.regione} - ${stazione.quota} - ${stazione.area}</div>
-          <div class="popup-data"><span class="bold">Temp:</span> ${temperatura}°C</div>
-          <div class="popup-data"><span class="bold">Max:</span> ${tempMax}°C / <span class="bold">Min:</span> ${tempMin}°C</div>
-          <div class="popup-data"><span class="bold">Umidità:</span> ${umidita}%</div>
-          <div class="popup-data"><span class="bold">Vento:</span> ${vento} km/h / <span class="bold">Raffica:</span> ${raffica} km/h</div>
-          <div class="popup-data"><span class="bold">Pioggia:</span> ${pioggia} mm</div>
-          <div class="popup-data"><span class="bold">Aggiornamento:</span> ${orario}</div>
-          <a class="btn" href="#" target="_blank">Vai alla pagina</a>
-          <button class="btn" onclick="apriGrafico('${stazione.stationId}')">Grafico temperatura</button>
-          ${stazione.webcam ? `<img src="${stazione.webcam}" class="webcam-preview">` : '<div class="webcam-missing">Webcam non disponibile</div>'}
-        `;
-
-        marker.bindPopup(popupContent);
-
-        datiTabella.push({
-          nome: stazione.nome,
-          temp: temperatura,
-          tempMax: tempMax,
-          tempMin: tempMin,
-          umidita: umidita,
-          pioggia: pioggia,
-          raffica: raffica,
-          orario: orario
-        });
-
-        datiTabella.sort((a, b) => b.temp - a.temp);
-
-        aggiornaTabella();
-      });
+        aggiungiMarker(stazione, data.observations[0]);
+      })
+  } else {
+    aggiungiMarker(stazione, null);
   }
 });
+
+function aggiungiMarker(stazione, obs) {
+  let temperatura = obs ? obs.metric.temp.toFixed(1) : "--";
+  let tempMax = obs ? (obs.metric.tempHigh24Hour?.toFixed(1) || "-") : "-";
+  let tempMin = obs ? (obs.metric.tempLow24Hour?.toFixed(1) || "-") : "-";
+  let umidita = obs ? (obs.humidity || "-") : "-";
+  let vento = obs ? (obs.windSpeed || "-") : "-";
+  let raffica = obs ? (obs.windGust || "-") : "-";
+  let pioggia = obs ? (obs.metric.precipTotal || "0") : "-";
+  let orario = obs ? new Date(obs.obsTimeUtc).toLocaleString('it-IT') : "Dati non disponibili";
+
+  const colore = (temperatura !== "--") ? getColor(temperatura) : "#999999";
+
+  var tempIcon = L.divIcon({
+    className: 'temperature-label',
+    html: `<span style="color: ${temperatura !== "--" && parseFloat(temperatura) > 5 ? 'white' : 'black'}">${temperatura}°</span>`,
+    iconSize: [40, 40],
+    iconAnchor: [20, 20]
+  });
+
+  var marker = L.marker([stazione.lat, stazione.lon], {icon: tempIcon}).addTo(map);
+  marker.getElement().style.backgroundColor = colore;
+
+  var popupContent = `
+    <div class="popup-title">${stazione.nome}</div>
+    <div class="popup-sub">${stazione.provincia} - ${stazione.regione} - ${stazione.quota} - ${stazione.area}</div>
+    ${temperatura !== "--" ? `
+    <div class="popup-data"><span class="bold">Temp:</span> ${temperatura}°C</div>
+    <div class="popup-data"><span class="bold">Max:</span> ${tempMax}°C / <span class="bold">Min:</span> ${tempMin}°C</div>
+    <div class="popup-data"><span class="bold">Umidità:</span> ${umidita}%</div>
+    <div class="popup-data"><span class="bold">Vento:</span> ${vento} km/h / <span class="bold">Raffica:</span> ${raffica} km/h</div>
+    <div class="popup-data"><span class="bold">Pioggia:</span> ${pioggia} mm</div>
+    <div class="popup-data"><span class="bold">Aggiornamento:</span> ${orario}</div>
+    <button class="btn" onclick="apriGrafico('${stazione.stationId}')">Grafico temperatura</button>
+    ` : `<div class="popup-data"><span class="bold">Dati non disponibili</span></div>`}
+    ${stazione.webcam ? `<img src="${stazione.webcam}" class="webcam-preview">` : '<div class="webcam-missing">Webcam non disponibile</div>'}
+  `;
+
+  marker.bindPopup(popupContent);
+
+  if (temperatura !== "--") {
+    datiTabella.push({
+      nome: stazione.nome,
+      temp: temperatura,
+      tempMax: tempMax,
+      tempMin: tempMin,
+      umidita: umidita,
+      pioggia: pioggia,
+      raffica: raffica,
+      orario: orario
+    });
+    datiTabella.sort((a, b) => b.temp - a.temp);
+    aggiornaTabella();
+  }
+}
 
 function aggiornaTabella() {
   let html = "<table><thead><tr><th>Stazione</th><th>Temperatura</th><th>Max</th><th>Min</th><th>Umidità</th><th>Pioggia</th><th>Raffica</th></tr></thead><tbody>";

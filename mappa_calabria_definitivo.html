@@ -1,0 +1,181 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Mappa Meteo Calabria</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<style>
+  body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; }
+  #map { height: 80vh; width: 100%; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px; text-align: center; border: 1px solid #ccc; }
+  th { background-color: #f2f2f2; }
+  .temperature-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-weight: bold;
+    font-size: 14px;
+    border: 2px solid #000;
+    color: #000;
+  }
+  .popup-title { font-size: 16px; font-weight: bold; }
+  .popup-sub { font-size: 12px; color: #666; margin-bottom: 6px; }
+  .popup-data { margin: 2px 0; font-size: 14px; }
+  .bold { font-weight: bold; }
+  .webcam-preview { width: 100%; max-height: 100px; object-fit: cover; margin-top: 5px; border-radius: 5px; }
+  .webcam-missing { font-size: 12px; color: #777; margin-top: 5px; text-align: center; }
+  .btn { display:inline-block; padding: 6px 10px; margin: 5px 5px 0 0; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; text-decoration: none; font-size: 12px; }
+  .btn:hover { background-color: #0056b3; }
+  #popup-grafico { position: fixed; top: 10%; left: 5%; width: 90%; height: 80%; background: white; border: 2px solid #007bff; border-radius: 8px; display: none; flex-direction: column; z-index: 10000; }
+  #popup-grafico iframe { flex: 1; width: 100%; border: none; }
+  #popup-grafico .close-btn { background: red; color: white; padding: 5px; border: none; width: 100%; font-weight: bold; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="tabella"></div>
+
+<div id="popup-grafico">
+  <button class="close-btn" onclick="chiudiGrafico()">Chiudi</button>
+  <iframe id="grafico-frame" src=""></iframe>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+const stazioni = [
+  { nome: "Cosenza - Vaglio Lise", lat: 39.32, lon: 16.26, quota: "208 m", provincia: "Cosenza", regione: "Calabria", area: "Valle del Crati", stationId: "ICOSEN11", apiKey: "03d402e1e8844ac49402e1e8844ac419", webcam: "" },
+  { nome: "Amantea Spiaggia", lat: 39.13, lon: 16.07, quota: "0 m", provincia: "Cosenza", regione: "Calabria", area: "Costa Tirrenica Cosentina", stationId: "IAMANT6", apiKey: "844d02e7e12049ef8d02e7e120b9ef68", webcam: "https://meteologullo.github.io/immagine_provvisoria_amantea.jpg" },
+  { nome: "Montescuro - Celico", lat: 39.33, lon: 16.40, quota: "1643 m", provincia: "Cosenza", regione: "Calabria", area: "Vetta della Sila Grande", stationId: "ICELIC1", apiKey: "844d02e7e12049ef8d02e7e120b9ef68", webcam: "" },
+  { nome: "Cosenza - Campagnano", lat: 39.31, lon: 16.23, quota: "234 m", provincia: "Cosenza", regione: "Calabria", area: "Valle del Crati", stationId: "ICOSEN20", apiKey: "844d02e7e12049ef8d02e7e120b9ef68", webcam: "" },
+  { nome: "Mendicino - Tivolille Pasquali", lat: 39.28, lon: 16.20, quota: "431 m", provincia: "Cosenza", regione: "Calabria", area: "Catena Costiera", stationId: "IMENDI13", apiKey: "844d02e7e12049ef8d02e7e120b9ef68", webcam: "" },
+  { nome: "Casali del Manco - Morelli Soprana", lat: 39.28, lon: 16.29, quota: "800 m", provincia: "Cosenza", regione: "Calabria", area: "Valle del Crati", stationId: "ICASAL40", apiKey: "", webcam: "" }
+];
+
+var map = L.map('map').setView([39.3, 16.3], 9);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+function getColor(temp) {
+  if (temp <= -10) return '#00008B';
+  if (temp <= -5) return '#0000CD';
+  if (temp <= 0) return '#1E90FF';
+  if (temp <= 3) return '#00BFFF';
+  if (temp <= 5) return '#87CEFA';
+  if (temp <= 8) return '#00FA9A';
+  if (temp <= 10) return '#00FF7F';
+  if (temp <= 14) return '#32CD32';
+  if (temp <= 18) return '#ADFF2F';
+  if (temp <= 22) return '#FFFF00';
+  if (temp <= 25) return '#FFD700';
+  if (temp <= 28) return '#FFA500';
+  if (temp <= 30) return '#FF8C00';
+  if (temp <= 33) return '#FF4500';
+  if (temp <= 36) return '#B22222';
+  if (temp <= 38) return '#8B008B';
+  if (temp <= 42) return '#FF69B4';
+  return '#8B0000';
+}
+
+let datiTabella = [];
+
+function apriGrafico(stationId) {
+  document.getElementById('grafico-frame').src = `https://www.wunderground.com/dashboard/pws/${stationId}/graph/2024-04-28/2024-04-28/daily`;
+  document.getElementById('popup-grafico').style.display = 'flex';
+}
+
+function chiudiGrafico() {
+  document.getElementById('popup-grafico').style.display = 'none';
+  document.getElementById('grafico-frame').src = "";
+}
+
+stazioni.forEach(stazione => {
+  if (stazione.apiKey) {
+    fetch(`https://api.weather.com/v2/pws/observations/current?stationId=${stazione.stationId}&format=json&units=m&apiKey=${stazione.apiKey}`)
+      .then(response => response.json())
+      .then(data => {
+        const obs = data.observations[0];
+        const temperatura = obs.metric.temp.toFixed(1);
+        const tempMax = obs.metric.tempHigh24Hour?.toFixed(1) || "-";
+        const tempMin = obs.metric.tempLow24Hour?.toFixed(1) || "-";
+        const umidita = obs.humidity || "-";
+        const vento = obs.windSpeed || "-";
+        const raffica = obs.windGust || "-";
+        const pioggia = obs.metric.precipTotal || "0";
+        const orario = new Date(obs.obsTimeUtc).toLocaleString('it-IT');
+
+        const colore = getColor(temperatura);
+
+        var tempIcon = L.divIcon({
+          className: 'temperature-label',
+          html: `<span style="color: ${parseFloat(temperatura) > 5 ? 'white' : 'black'}">${temperatura}°</span>`,
+          iconSize: [40, 40],
+          iconAnchor: [20, 20]
+        });
+
+        var marker = L.marker([stazione.lat, stazione.lon], {icon: tempIcon}).addTo(map);
+        marker.getElement().style.backgroundColor = colore;
+
+        var popupContent = `
+          <div class="popup-title">${stazione.nome}</div>
+          <div class="popup-sub">${stazione.provincia} - ${stazione.regione} - ${stazione.quota} - ${stazione.area}</div>
+          <div class="popup-data"><span class="bold">Temp:</span> ${temperatura}°C</div>
+          <div class="popup-data"><span class="bold">Max:</span> ${tempMax}°C / <span class="bold">Min:</span> ${tempMin}°C</div>
+          <div class="popup-data"><span class="bold">Umidità:</span> ${umidita}%</div>
+          <div class="popup-data"><span class="bold">Vento:</span> ${vento} km/h / <span class="bold">Raffica:</span> ${raffica} km/h</div>
+          <div class="popup-data"><span class="bold">Pioggia:</span> ${pioggia} mm</div>
+          <div class="popup-data"><span class="bold">Aggiornamento:</span> ${orario}</div>
+          <a class="btn" href="#" target="_blank">Vai alla pagina</a>
+          <button class="btn" onclick="apriGrafico('${stazione.stationId}')">Grafico temperatura</button>
+          ${stazione.webcam ? `<img src="${stazione.webcam}" class="webcam-preview">` : '<div class="webcam-missing">Webcam non disponibile</div>'}
+        `;
+
+        marker.bindPopup(popupContent);
+
+        datiTabella.push({
+          nome: stazione.nome,
+          temp: temperatura,
+          tempMax: tempMax,
+          tempMin: tempMin,
+          umidita: umidita,
+          pioggia: pioggia,
+          raffica: raffica,
+          orario: orario
+        });
+
+        datiTabella.sort((a, b) => b.temp - a.temp);
+
+        aggiornaTabella();
+      });
+  }
+});
+
+function aggiornaTabella() {
+  let html = "<table><thead><tr><th>Stazione</th><th>Temperatura</th><th>Max</th><th>Min</th><th>Umidità</th><th>Pioggia</th><th>Raffica</th></tr></thead><tbody>";
+  datiTabella.forEach(staz => {
+    html += `<tr>
+      <td>${staz.nome}</td>
+      <td style="background-color:${getColor(staz.temp)};color:${parseFloat(staz.temp)>5?'white':'black'}">${staz.temp}°C</td>
+      <td>${staz.tempMax}°C</td>
+      <td>${staz.tempMin}°C</td>
+      <td>${staz.umidita}%</td>
+      <td>${staz.pioggia} mm</td>
+      <td>${staz.raffica} km/h</td>
+    </tr>`;
+  });
+  html += "</tbody></table>";
+  document.getElementById('tabella').innerHTML = html;
+}
+</script>
+
+</body>
+</html>

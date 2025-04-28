@@ -1,0 +1,143 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Mappa Stazioni Meteo - Calabria</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; }
+    #map { height: 70vh; width: 100%; }
+    #station-table { padding: 10px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 8px; border: 1px solid #ccc; text-align: center; }
+    th { background-color: #f2f2f2; }
+    .temperature-label {
+      background-color: rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      border: 2px solid #333;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    @media (max-width: 600px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      th { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<section id="station-table">
+  <h2>Stazioni Meteo</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Temperatura</th>
+        <th>Umidità</th>
+        <th>Vento</th>
+        <th>Pioggia</th>
+      </tr>
+    </thead>
+    <tbody id="table-body">
+      <!-- Dati dinamici -->
+    </tbody>
+  </table>
+</section>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  var map = L.map('map').setView([39.3, 16.3], 9);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  function getColor(temp) {
+    return temp >= 30 ? '#ff0000' :
+           temp >= 20 ? '#ffa500' :
+           temp >= 10 ? '#ffff00' :
+           temp >= 0  ? '#00ff00' :
+                        '#00bfff';
+  }
+
+  var stazioni = [
+    { nome: "Amantea Spiaggia", lat: 39.13, lon: 16.07, temperatura: 18, umidita: 70, vento: 5, pioggia: 0, webcam: "" },
+    { nome: "Celico Montescuro", lat: 39.33, lon: 16.40, temperatura: 12, umidita: 80, vento: 10, pioggia: 2, webcam: "" },
+    { nome: "Cosenza Campagnano", lat: 39.31, lon: 16.23, temperatura: 15, umidita: 75, vento: 8, pioggia: 1, webcam: "" }
+  ];
+
+  stazioni.forEach(function(stazione) {
+    var tempIcon = L.divIcon({
+      className: 'temperature-label',
+      html: `${stazione.temperatura}°`,
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+      popupAnchor: [0, -20]
+    });
+
+    var marker = L.marker([stazione.lat, stazione.lon], {icon: tempIcon}).addTo(map);
+
+    var popupContent = `
+      <b>${stazione.nome}</b><br>
+      Temperatura: ${stazione.temperatura} °C<br>
+      Umidità: ${stazione.umidita}%<br>
+      Vento: ${stazione.vento} km/h<br>
+      Pioggia: ${stazione.pioggia} mm<br><br>
+      <canvas id="chart-${stazione.nome.replace(/\s/g, '')}" width="250" height="150"></canvas><br><br>
+      ${stazione.webcam ? `<img src="${stazione.webcam}" alt="Webcam" style="width:100%;max-width:300px;">` : '<i>Webcam non disponibile</i>'}
+    `;
+
+    marker.bindPopup(popupContent);
+
+    marker.on('popupopen', function() {
+      var ctx = document.getElementById(`chart-${stazione.nome.replace(/\s/g, '')}`).getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['00h', '03h', '06h', '09h', '12h', '15h', '18h', '21h'],
+          datasets: [{
+            label: 'Temperatura (°C)',
+            data: [stazione.temperatura-2, stazione.temperatura-1, stazione.temperatura, stazione.temperatura+1, stazione.temperatura, stazione.temperatura-1, stazione.temperatura-2, stazione.temperatura-1],
+            borderColor: 'red',
+            backgroundColor: 'rgba(255,0,0,0.2)',
+            fill: true
+          }]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    });
+
+    // Aggiorna la tabella sotto
+    var row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${stazione.nome}</td>
+      <td>${stazione.temperatura} °C</td>
+      <td>${stazione.umidita}%</td>
+      <td>${stazione.vento} km/h</td>
+      <td>${stazione.pioggia} mm</td>
+    `;
+    document.getElementById('table-body').appendChild(row);
+  });
+
+</script>
+
+</body>
+</html>

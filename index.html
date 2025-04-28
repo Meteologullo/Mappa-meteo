@@ -3,7 +3,7 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Mappa Meteo Calabria - Simulazione</title>
+  <title>Mappa Meteo Calabria</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
@@ -14,16 +14,23 @@
     th, td { padding: 8px; border: 1px solid #ccc; text-align: center; }
     th { background-color: #f2f2f2; }
     .temperature-label {
-      background-color: rgba(255,255,255,0.8);
+      background-color: rgba(255,255,255,0.7);
       border-radius: 50%;
       border: 2px solid #333;
-      width: 30px;
-      height: 30px;
+      width: 25px;
+      height: 25px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
-      font-size: 12px;
+      font-size: 10px;
+      color: black;
+    }
+    .webcam-preview {
+      margin-top: 5px;
+      width: 100%;
+      height: 100px;
+      object-fit: cover;
     }
     @media (max-width: 600px) {
       table, thead, tbody, th, td, tr { display: block; }
@@ -36,12 +43,12 @@
 <div id="map"></div>
 
 <section id="station-table">
-  <h2>Stazioni Meteo - Tabella Dati</h2>
+  <h2>Stazioni Meteo</h2>
   <table>
     <thead>
       <tr>
         <th>Stazione</th>
-        <th>Temperatura</th>
+        <th>Temp</th>
         <th>Max</th>
         <th>Min</th>
         <th>Umidità</th>
@@ -66,30 +73,35 @@
   }).addTo(map);
 
   function getColor(temp) {
-    return temp >= 35 ? '#FF0000' :
-           temp >= 25 ? '#FF7F00' :
-           temp >= 15 ? '#FFFF00' :
-           temp >= 5  ? '#00FF00' :
-           temp >= -5 ? '#00BFFF' :
-                        '#0000FF';
+    if (temp <= 0) return '#0033cc';            // Azzurro scuro
+    if (temp <= 5) return '#66ccff';             // Azzurro chiaro
+    if (temp <= 10) return '#00ffcc';            // Verde acqua
+    if (temp <= 15) return '#00cc66';            // Verde
+    if (temp <= 20) return '#ccff33';            // Giallino
+    if (temp <= 25) return '#ffff00';            // Giallo
+    if (temp <= 28) return '#ffcc00';            // Arancione chiaro
+    if (temp <= 32) return '#ff9900';            // Arancione forte
+    if (temp <= 35) return '#ff6600';            // Rosso arancio
+    if (temp <= 38) return '#ff3300';            // Rosso
+    if (temp <= 40) return '#cc0000';            // Rosso vivo
+    return '#990000';                            // Rosso intenso
   }
 
-  // Stazioni di esempio con dati simulati
+  // Simuliamo i dati per ora
   var stazioni = [
-    { nome: "Cosenza Vaiolise", lat: 39.32, lon: 16.26, temperatura: 20, tempMax: 24, tempMin: 16, umidita: 70, vento: 5, raffica: 10, pioggia: 1, link: "#" },
-    { nome: "Amantea Spiaggia", lat: 39.13, lon: 16.07, temperatura: 22, tempMax: 27, tempMin: 19, umidita: 65, vento: 8, raffica: 12, pioggia: 0, link: "#" },
-    { nome: "Celico Montescuro", lat: 39.33, lon: 16.40, temperatura: 15, tempMax: 18, tempMin: 10, umidita: 80, vento: 12, raffica: 18, pioggia: 2, link: "#" },
-    { nome: "Mendicino Tivolille Pasquali", lat: 39.28, lon: 16.20, temperatura: 17, tempMax: 21, tempMin: 13, umidita: 75, vento: 10, raffica: 14, pioggia: 1.5, link: "#" },
-    { nome: "Casali del Manco Morelli Soprana", lat: 39.28, lon: 16.29, temperatura: 16, tempMax: 19, tempMin: 12, umidita: 78, vento: 9, raffica: 13, pioggia: 2.2, link: "#" },
-    { nome: "Stazione Esempio", lat: 39.30, lon: 16.30, temperatura: 18, tempMax: 23, tempMin: 15, umidita: 72, vento: 7, raffica: 11, pioggia: 0, link: "#" }
+    { nome: "Cosenza Vaiolise", lat: 39.32, lon: 16.26, temperatura: 20, tempMax: 24, tempMin: 16, umidita: 70, vento: 5, raffica: 10, pioggia: 1, webcam: "", link: "#" },
+    { nome: "Amantea Spiaggia", lat: 39.13, lon: 16.07, temperatura: 22, tempMax: 27, tempMin: 19, umidita: 65, vento: 8, raffica: 12, pioggia: 0, webcam: "", link: "#" },
+    { nome: "Celico Montescuro", lat: 39.33, lon: 16.40, temperatura: 15, tempMax: 18, tempMin: 10, umidita: 80, vento: 12, raffica: 18, pioggia: 2, webcam: "", link: "#" },
+    { nome: "Mendicino Tivolille Pasquali", lat: 39.28, lon: 16.20, temperatura: 17, tempMax: 21, tempMin: 13, umidita: 75, vento: 10, raffica: 14, pioggia: 1.5, webcam: "", link: "#" },
+    { nome: "Casali del Manco Morelli Soprana", lat: 39.28, lon: 16.29, temperatura: 16, tempMax: 19, tempMin: 12, umidita: 78, vento: 9, raffica: 13, pioggia: 2.2, webcam: "", link: "#" }
   ];
 
   stazioni.forEach(function(stazione) {
     var tempIcon = L.divIcon({
       className: 'temperature-label',
       html: `${stazione.temperatura}°`,
-      iconSize: [30, 30],
-      iconAnchor: [15, 15]
+      iconSize: [25, 25],
+      iconAnchor: [12, 12]
     });
 
     var marker = L.marker([stazione.lat, stazione.lon], {icon: tempIcon}).addTo(map);
@@ -97,18 +109,20 @@
 
     var popupContent = `
       <b>${stazione.nome}</b><br>
-      <a href="${stazione.link}" target="_blank">Vai alla stazione</a><br><br>
-      <canvas id="chart-temp-${stazione.lat}"></canvas><br>
-      <canvas id="chart-umid-${stazione.lat}"></canvas><br>
-      <canvas id="chart-vento-${stazione.lat}"></canvas><br>
-      <canvas id="chart-piog-${stazione.lat}"></canvas>
+      Temp: ${stazione.temperatura}°C<br>
+      Max: ${stazione.tempMax}°C / Min: ${stazione.tempMin}°C<br>
+      Umidità: ${stazione.umidita}%<br>
+      Raffica: ${stazione.raffica} km/h<br>
+      ${stazione.webcam ? `<img class="webcam-preview" src="${stazione.webcam}" alt="Webcam">` : '<i>Webcam non disponibile</i>'}<br><br>
+      <canvas id="chart-${stazione.lat}" width="250" height="100"></canvas><br><br>
+      <a href="${stazione.link}" target="_blank"><button>Vai alla stazione</button></a>
     `;
 
     marker.bindPopup(popupContent);
 
     marker.on('popupopen', function() {
-      var tempCtx = document.getElementById(`chart-temp-${stazione.lat}`).getContext('2d');
-      new Chart(tempCtx, {
+      var ctx = document.getElementById(`chart-${stazione.lat}`).getContext('2d');
+      new Chart(ctx, {
         type: 'line',
         data: {
           labels: ['00h', '06h', '12h', '18h'],
@@ -119,59 +133,17 @@
             backgroundColor: 'rgba(255,0,0,0.2)',
             fill: true
           }]
-        }
-      });
-
-      var umidCtx = document.getElementById(`chart-umid-${stazione.lat}`).getContext('2d');
-      new Chart(umidCtx, {
-        type: 'line',
-        data: {
-          labels: ['00h', '06h', '12h', '18h'],
-          datasets: [{
-            label: 'Umidità (%)',
-            data: [stazione.umidita-5, stazione.umidita, stazione.umidita-3, stazione.umidita-2],
-            borderColor: 'blue',
-            backgroundColor: 'rgba(0,0,255,0.2)',
-            fill: true
-          }]
-        }
-      });
-
-      var ventoCtx = document.getElementById(`chart-vento-${stazione.lat}`).getContext('2d');
-      new Chart(ventoCtx, {
-        type: 'line',
-        data: {
-          labels: ['00h', '06h', '12h', '18h'],
-          datasets: [{
-            label: 'Vento (km/h)',
-            data: [stazione.vento-2, stazione.vento, stazione.raffica, stazione.vento-1],
-            borderColor: 'green',
-            backgroundColor: 'rgba(0,255,0,0.2)',
-            fill: true
-          }]
-        }
-      });
-
-      var pioggiaCtx = document.getElementById(`chart-piog-${stazione.lat}`).getContext('2d');
-      new Chart(pioggiaCtx, {
-        type: 'bar',
-        data: {
-          labels: ['00h', '06h', '12h', '18h'],
-          datasets: [{
-            label: 'Pioggia (mm)',
-            data: [0, 0.2, stazione.pioggia, 0],
-            backgroundColor: 'rgba(0,0,255,0.5)'
-          }]
-        }
+        },
+        options: { responsive: true, maintainAspectRatio: false }
       });
     });
 
     var row = document.createElement('tr');
     row.innerHTML = `
       <td>${stazione.nome}</td>
-      <td>${stazione.temperatura} °C</td>
-      <td>${stazione.tempMax} °C</td>
-      <td>${stazione.tempMin} °C</td>
+      <td>${stazione.temperatura}°C</td>
+      <td>${stazione.tempMax}°C</td>
+      <td>${stazione.tempMin}°C</td>
       <td>${stazione.umidita}%</td>
       <td>${stazione.vento} km/h</td>
       <td>${stazione.raffica} km/h</td>

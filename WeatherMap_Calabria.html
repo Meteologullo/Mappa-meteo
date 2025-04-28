@@ -1,0 +1,125 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mappa Meteo Calabria</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        #map { height: 100vh; }
+        .leaflet-popup-content { font-size: 16px; }
+        .marker-temp { font-weight: bold; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chart.js/2.9.3/Chart.min.js"></script>
+
+<script>
+    var map = L.map('map').setView([39.33, 16.25], 9);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    var stations = [
+        {
+            id: 'IAMANT6',
+            name: 'Amantea Spiaggia',
+            lat: 39.13,
+            lon: 16.07,
+            temp: 15.2,
+            hum: 62,
+            wind: 3.5,
+            rain: 0.0,
+            popupContent: 'Amantea Spiaggia <br> Temperatura: 15.2°C <br> Umidità: 62% <br> Vento: 3.5 m/s'
+        },
+        {
+            id: 'ICELIC1',
+            name: 'Celico Monte Scuro',
+            lat: 39.33,
+            lon: 16.40,
+            temp: 8.5,
+            hum: 75,
+            wind: 2.8,
+            rain: 0.2,
+            popupContent: 'Celico Monte Scuro <br> Temperatura: 8.5°C <br> Umidità: 75% <br> Vento: 2.8 m/s'
+        },
+        {
+            id: 'IMENDI13',
+            name: 'Mendicino Tivolille',
+            lat: 39.28,
+            lon: 16.20,
+            temp: 12.3,
+            hum: 70,
+            wind: 4.0,
+            rain: 1.2,
+            popupContent: 'Mendicino Tivolille <br> Temperatura: 12.3°C <br> Umidità: 70% <br> Vento: 4.0 m/s'
+        },
+        {
+            id: 'ICOSEN20',
+            name: 'Cosenza Campagnano',
+            lat: 39.31,
+            lon: 16.23,
+            temp: 14.5,
+            hum: 80,
+            wind: 5.1,
+            rain: 0.0,
+            popupContent: 'Cosenza Campagnano <br> Temperatura: 14.5°C <br> Umidità: 80% <br> Vento: 5.1 m/s'
+        },
+        {
+            id: 'ICOSEN11',
+            name: 'Cosenza Vagliolise',
+            lat: 39.32,
+            lon: 16.26,
+            temp: 13.8,
+            hum: 68,
+            wind: 4.5,
+            rain: 0.1,
+            popupContent: 'Cosenza Vagliolise <br> Temperatura: 13.8°C <br> Umidità: 68% <br> Vento: 4.5 m/s'
+        },
+        {
+            id: 'ICASAL40',
+            name: 'Casali del Manco Morelli Soprana',
+            lat: 39.28,
+            lon: 16.29,
+            temp: 11.6,
+            hum: 73,
+            wind: 3.0,
+            rain: 0.0,
+            popupContent: 'Casali del Manco Morelli Soprana <br> Temperatura: 11.6°C <br> Umidità: 73% <br> Vento: 3.0 m/s'
+        }
+    ];
+
+    function getColor(temperature) {
+        if (temperature <= -5) return 'violet';
+        else if (temperature <= 0) return 'blue';
+        else if (temperature <= 5) return 'lightblue';
+        else if (temperature <= 10) return 'green';
+        else if (temperature <= 15) return 'yellowgreen';
+        else if (temperature <= 20) return 'yellow';
+        else if (temperature <= 25) return 'orange';
+        else if (temperature <= 30) return 'darkorange';
+        else return 'red';
+    }
+
+    stations.forEach(function(station) {
+        var marker = L.circleMarker([station.lat, station.lon], {
+            radius: 8,
+            fillColor: getColor(station.temp),
+            color: 'black',
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+        }).addTo(map);
+
+        marker.bindPopup('<b>' + station.name + '</b><br>' + station.popupContent);
+    });
+
+</script>
+
+</body>
+</html>

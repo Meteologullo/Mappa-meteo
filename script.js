@@ -1,8 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+// Firebase Config (lettura pubblica OK)
 const firebaseConfig = {
-  apiKey: "AIzaSyDasXnVu7uIEjpwtQ-XbVilREGmAZSBjVE",
+  // Se usi funzionalità private, reinserisci qui la tua chiave API:
+  // apiKey: "INSERISCI_LA_TUA_API_KEY",
   authDomain: "meteo-estremami.firebaseapp.com",
   projectId: "meteo-estremami",
   storageBucket: "meteo-estremami.firebasestorage.app",
